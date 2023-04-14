@@ -12,7 +12,7 @@ import { environment } from './../../environments/environment';
 })
 export class ProductsService {
 
-  private apiUrl = `${environment.API_URL}/api/products`;
+  private apiUrl = environment.API_URL;
 
   constructor(
     private http: HttpClient
@@ -20,20 +20,20 @@ export class ProductsService {
 
   getAll(limit?: number, offset?: number) {
     let params = new HttpParams();
-    if (limit && offset) {
+    if (limit !== undefined && offset !== undefined) {
       params = params.set('limit', limit);
       params = params.set('offset', limit);
     }
-    return this.http.get<Product[]>(this.apiUrl, { params, context: checkTime() })
-    .pipe(
-      retry(3),
-      map(products => products.map(item => {
-        return {
-          ...item,
-          taxes: .19 * item.price
-        }
-      }))
-    );
+    return this.http.get<Product[]>(`${this.apiUrl}/products`, { params, context: checkTime() })
+      .pipe(
+        retry(3),
+        map(products => products.map(item => {
+          return {
+            ...item,
+            taxes: .19 * item.price
+          }
+        }))
+      );
   }
 
   fetchReadAndUpdate(id: string, dto: UpdateProductDTO) {
@@ -44,32 +44,41 @@ export class ProductsService {
   }
 
   getOne(id: string) {
-    return this.http.get<Product>(`${this.apiUrl}/${id}`)
-    .pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === HttpStatusCode.Conflict) {
-          return throwError('Algo esta fallando en el server');
-        }
-        if (error.status === HttpStatusCode.NotFound) {
-          return throwError('El producto no existe');
-        }
-        if (error.status === HttpStatusCode.Unauthorized) {
-          return throwError('No estas permitido');
-        }
-        return throwError('Ups algo salio mal');
-      })
-    )
+    return this.http.get<Product>(`${this.apiUrl}/products/${id}`)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error.status === HttpStatusCode.Conflict) {
+            return throwError('Algo esta fallando en el server');
+          }
+          if (error.status === HttpStatusCode.NotFound) {
+            return throwError('El producto no existe');
+          }
+          if (error.status === HttpStatusCode.Unauthorized) {
+            return throwError('No estas permitido');
+          }
+          return throwError('Ups algo salio mal');
+        })
+      )
   }
 
   create(dto: CreateProductDTO) {
-    return this.http.post<Product>(this.apiUrl, dto);
+    return this.http.post<Product>(`${this.apiUrl}/products`, dto);
   }
 
   update(id: string, dto: UpdateProductDTO) {
-    return this.http.put<Product>(`${this.apiUrl}/${id}`, dto);
+    return this.http.put<Product>(`${this.apiUrl}/products/${id}`, dto);
   }
 
   delete(id: string) {
-    return this.http.delete<boolean>(`${this.apiUrl}/${id}`);
+    return this.http.delete<boolean>(`${this.apiUrl}/products/${id}`);
+  }
+
+  getBycategory(categoryId: string, limit?: number, offset?: number) {
+    let params = new HttpParams();
+    if (limit !== undefined && offset !== undefined) {
+      params = params.set('limit', limit);
+      params = params.set('offset', limit);
+    }
+    return this.http.get<Product[]>(`${this.apiUrl}/categories/${categoryId}/products`, { params })
   }
 }
